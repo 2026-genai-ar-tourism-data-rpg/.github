@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 협업 가이드 (브랜치·커밋·프로젝트)
+    url: https://github.com/2026-genai-ar-tourism-data-rpg/.github/blob/main/CONTRIBUTING.md
+    about: 이슈를 만들기 전에 협업 규칙을 확인하세요.

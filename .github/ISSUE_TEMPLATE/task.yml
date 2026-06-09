@@ -1,0 +1,62 @@
+name: "📋 Task (기능 단위)"
+description: 여러 레포(앱/서버/AI/인프라)에 걸친 큰 작업 단위. 이 이슈는 .github 레포에 만든다.
+title: "[Task] "
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 큰 기능 단위(Task)
+        이 Task를 보고 팀원들이 **각자 자기 레포에 작업 이슈**를 만들어 연결합니다.
+        (협업 규칙: ../CONTRIBUTING.md)
+  - type: textarea
+    id: summary
+    attributes:
+      label: 기능 개요
+      description: 이 Task가 무엇이고 왜 필요한지
+      placeholder: 예) 솔로 플레이 한 퀘스트를 종로 1개 장소에서 끝까지 도는 수직 슬라이스
+    validations:
+      required: true
+  - type: textarea
+    id: dod
+    attributes:
+      label: 완료 조건 (DoD)
+      description: 무엇이 되면 이 Task가 끝났다고 보는가
+      placeholder: |
+        - [ ] GPS 진입 → 퀘스트 활성화
+        - [ ] NPC 대화
+        - [ ] AR 단서 수집
+        - [ ] 사건 해결
+    validations:
+      required: true
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: 관련 영역 (레포)
+      description: 이 Task가 걸쳐 있는 영역
+      options:
+        - label: App (dokkaebi-app)
+        - label: Server (dokkaebi-server)
+        - label: AI (dokkaebi-ai)
+        - label: Infra (dokkaebi-infra)
+        - label: Data
+        - label: Design
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: 마일스톤
+      options:
+        - M0 셋업·계약
+        - M1 솔로 수직 슬라이스
+        - M2 AI + 멀티유저
+        - M3 맞춤·공용화·밸런싱
+        - M4 QA·제출
+  - type: textarea
+    id: subtasks
+    attributes:
+      label: 하위 작업 (레포별 이슈 링크)
+      description: 각 레포에 만든 작업 이슈를 체크리스트로 연결 (레포#번호 또는 URL)
+      placeholder: |
+        - [ ] dokkaebi-app#12 AR 단서 오버레이
+        - [ ] dokkaebi-server#8 퀘스트 API
+        - [ ] dokkaebi-ai#5 NPC 대사 함수
