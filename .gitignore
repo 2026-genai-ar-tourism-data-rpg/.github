@@ -1,0 +1,5 @@
+# [v1] .github(조직 문서) .gitignore (2026-06-10)
+.DS_Store
+.vscode/
+.idea/
+*.tmp
