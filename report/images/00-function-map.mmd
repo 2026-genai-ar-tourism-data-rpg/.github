@@ -1,0 +1,46 @@
+flowchart TB
+    App["📱 App"]:::jch
+
+    subgraph SV["🖥️ dokkaebi-server"]
+        QC["QuestController<br/>verifyLocation · dialogue · collect · complete"]:::jch
+        QS["QuestService"]:::jch
+        AC["AiClient.dialogue"]:::jch
+        PG["PartyGateway<br/>onCollect · onChat"]:::kys
+        PS["PartyService"]:::jch
+        MS["MapService"]:::ljs
+        US["UserService"]:::ljs
+        SS["ScenarioService"]:::kys
+    end
+
+    subgraph AIB["🤖 dokkaebi-ai"]
+        RT["routes.dialogue"]:::jch
+        RD["run_dialogue"]:::kys
+        subgraph GR["LangGraph 노드"]
+            PI["persona_inject"]:::kys --> CR["cache_read"]:::jch --> CL["context_load"]:::jch --> PA["prompt_assemble"]:::pjh --> GE["generate"]:::pjh --> CW["cache_write"]:::jch
+            RE["retrieve(옵션)"]:::pjh
+        end
+        RCACHE["RegionCache.get_text"]:::ljs
+        LC["LLMClient.generate<br/>세마포어·429 백오프"]:::jch
+    end
+
+    PG_DB[("PostgreSQL")]:::sys
+    REDIS[("Redis")]:::sys
+    UP["Upstage(Solar)"]:::sys
+
+    App ==>|REST| QC
+    App -.WebSocket.-> PG
+    QC ==> AC ==> RT ==> RD ==> PI
+    CL --> RCACHE
+    GE ==> LC ==> UP
+    QC --> QS --> PG_DB
+    QS --> REDIS
+    PG --> REDIS
+    MS --> PG_DB
+    US --> PG_DB
+    SS --> AIB
+
+    classDef kys fill:#cfe8ff,stroke:#3b82f6,color:#000
+    classDef jch fill:#d7f5dd,stroke:#22c55e,color:#000
+    classDef ljs fill:#ffe3c2,stroke:#f97316,color:#000
+    classDef pjh fill:#e9d5ff,stroke:#a855f7,color:#000
+    classDef sys fill:#eeeeee,stroke:#999999,color:#000

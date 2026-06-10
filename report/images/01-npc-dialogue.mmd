@@ -1,0 +1,34 @@
+sequenceDiagram
+    autonumber
+    participant App as 📱 App
+    participant QC as QuestController [server]
+    participant AC as AiClient [server]
+    participant RT as routes.dialogue [ai]
+    participant RD as run_dialogue [ai]
+    participant G as LangGraph 노드 [ai]
+    participant RC as RegionCache [ai]
+    participant LC as LLMClient [ai]
+    participant UP as Upstage(Solar)
+
+    App->>QC: POST /v1/quests/{id}/dialogue<br/>{node_id, stage}
+    QC->>AC: dialogue(node_id, stage, player_state)
+    AC->>RT: HTTP POST /v1/dialogue<br/>{node_id, stage, player_state}
+    RT->>RD: run_dialogue(node_id, stage, player_state)
+    RD->>G: graph.ainvoke(DialogueState)
+
+    Note over G: persona_inject(state) ⇒ {cache_key}
+    Note over G: cache_read(state) ⇒ {cache_hit:false}
+    G->>RC: context_load → get_text(node_id)
+    RC-->>G: 장소 텍스트(context)
+    Note over G: prompt_assemble(state) ⇒ {prompt}
+    G->>LC: generate → LLMClient.generate(prompt)
+    LC->>UP: chat/completions (세마포어·429 백오프)
+    UP-->>LC: 대사 텍스트
+    LC-->>G: response
+    Note over G: cache_write(state) ⇒ {}
+
+    G-->>RD: state{response, cache_hit}
+    RD-->>RT: (response, cache_hit)
+    RT-->>AC: DialogueResult
+    AC-->>QC: {response, cache_hit}
+    QC-->>App: 200 {response, cache_hit}
