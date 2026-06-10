@@ -14,10 +14,18 @@ cd dokkaebi-infra
 ## 내용
 
 - `docker-compose.yml` — 로컬 풀스택 한 번에 기동 (server + ai + postgres + redis)
-- 배포 매니페스트 (k8s / compose)
+- 배포 매니페스트 — **핫패스 = 컨테이너**(ECS Fargate/EC2), **배치 = 서버리스**(Lambda/스케줄)
 - GitHub Actions **재사용 워크플로우** (각 레포에서 호출)
 - 환경변수·시크릿 템플릿 (`.env.example`)
 - DB 마이그레이션 정책
+
+## 배포 모델 (요약)
+
+> 상세: [report/아키텍처_파이프라인.md](../report/아키텍처_파이프라인.md) 9절
+
+- **Persistent 컨테이너**: `dokkaebi-server`(실시간·WebSocket) + `dokkaebi-ai`(LLM 오케스트레이션·지역 인메모리) — 상태/지속연결/워밍 캐시 때문에 Lambda ❌
+- **Serverless(Lambda/스케줄)**: 데이터 배치(수집·노드빌더·임베딩)·온디맨드 fetch·스파이크성 stateless 엔드포인트. 무거운 배치는 AWS Batch/Fargate Task
+- **MVP**: 핫패스 컨테이너 + 배치만 Lambda. 풀 서버리스 ❌
 
 ## 로컬 풀스택 실행
 
