@@ -16,7 +16,7 @@ GitHub 조직: [`2026-genai-ar-tourism-data-rpg`](https://github.com/2026-genai-
 | [`dokkaebi-app`](./dokkaebi-app.md) | 모바일 앱 (핵심) | Flutter / Dart | 앱스토어·플레이스토어 |
 | [`dokkaebi-server`](./dokkaebi-server.md) | 백엔드 API + 실시간 서버 | Node.js / NestJS / Socket.io | 컨테이너 1개 |
 | [`dokkaebi-ai`](./dokkaebi-ai.md) | 생성형 AI / NPC 서비스 | Python / FastAPI / RAG | 독립 컨테이너 |
-| [`dokkaebi-infra`](./dokkaebi-infra.md) | 인프라·배포 | Docker / Compose / GitHub Actions | — |
+| [`dokkaebi-infra`](./dokkaebi-infra.md) | 인프라·배포 | Docker / Compose / GitHub Actions | 핫패스=컨테이너 / 배치=Lambda |
 | [`.github`](./dokkaebi-github.md) | 조직 프로필·공통 문서 | Markdown | — |
 
 > 데이터 수집 파이프라인은 별도 레포로 빼지 않고 `dokkaebi-server`의 워커로 둡니다. 분리할 만큼 무겁지 않고 같은 DB를 사용하기 때문입니다.

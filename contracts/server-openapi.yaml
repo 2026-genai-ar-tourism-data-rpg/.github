@@ -1,0 +1,335 @@
+# [v1] 앱 ↔ 게임서버 API 계약 (base-pipeline/kys, 2026-06-10)
+# 목적: 앱/서버 병렬 개발용 단일 계약. 변경은 PR로 공유(계약 우선).
+# 용어/스키마는 정본 report/기획_통합.md (LocationQuest 13-A, 상태머신 3절) 기준. snake_case.
+openapi: 3.1.0
+info:
+  title: 도깨비 게임 서버 API
+  version: 0.1.0
+  description: |
+    앱(dokkaebi-app) ↔ 게임 서버(dokkaebi-server) REST 계약 v0.
+    실시간 멀티(WebSocket/Socket.io) 이벤트는 contracts/README.md 참조.
+    NPC 대화는 서버가 내부적으로 dokkaebi-ai(POST /v1/dialogue)를 호출해 프록시.
+
+servers:
+  - url: http://localhost:8000/v1
+    description: 로컬
+  - url: https://api.dokkaebi.example/v1
+    description: (배포 예정)
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: user
+  - name: map
+  - name: quest
+  - name: party
+  - name: scenario
+
+paths:
+  /me:
+    get:
+      tags: [user]
+      summary: 내 진행 상태(탐사등급·방문률·도감·보유 조각)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserProgress" }
+
+  /regions/{region_id}/nodes:
+    get:
+      tags: [map]
+      summary: 지역의 관광지 노드(지도 마커, 상태별)
+      parameters:
+        - { name: region_id, in: path, required: true, schema: { type: string }, example: "jongno" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/MapNode" }
+
+  /nodes/{node_id}:
+    get:
+      tags: [map]
+      summary: 관광지 상세(설명·등장 NPC·획득 가능 조각/유물)
+      parameters:
+        - { name: node_id, in: path, required: true, schema: { type: string }, example: "jongno_unhyeongung" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NodeDetail" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /quests/{quest_id}/verify-location:
+    post:
+      tags: [quest]
+      summary: GPS 위치 인증 (ARRIVED → GPS_VERIFIED)
+      parameters:
+        - { name: quest_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LocationVerifyRequest" }
+      responses:
+        "200":
+          description: 인증 결과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocationVerifyResult" }
+
+  /quests/{quest_id}/dialogue:
+    post:
+      tags: [quest]
+      summary: NPC 대화 (서버가 dokkaebi-ai로 프록시)
+      parameters:
+        - { name: quest_id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DialogueRequest" }
+      responses:
+        "200":
+          description: NPC 대사
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DialogueResponse" }
+
+  /quests/{quest_id}/fragments/{fragment_id}/collect:
+    post:
+      tags: [quest]
+      summary: AR 기억석 조각 획득 (QUEST_ACTIVE)
+      parameters:
+        - { name: quest_id, in: path, required: true, schema: { type: string } }
+        - { name: fragment_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: 획득 결과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CollectResult" }
+
+  /quests/{quest_id}/complete:
+    post:
+      tags: [quest]
+      summary: 퀘스트 완료·보상 (QUEST_COMPLETE → REWARDED)
+      parameters:
+        - { name: quest_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: 보상 결과
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RewardResult" }
+
+  /parties:
+    post:
+      tags: [party]
+      summary: 파티 생성(초대 코드 발급, 최대 4인)
+      responses:
+        "201":
+          description: 생성됨
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Party" }
+
+  /parties/{code}/join:
+    post:
+      tags: [party]
+      summary: 초대 코드로 파티 입장
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: 입장됨
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Party" }
+
+  /scenarios/custom:
+    post:
+      tags: [scenario]
+      summary: 맞춤 시나리오 생성(위시리스트 → 앵커+샛길, 규칙 11-3)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CustomScenarioRequest" }
+      responses:
+        "201":
+          description: 생성된 시나리오
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Scenario" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    NotFound:
+      description: 없음
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+
+    UserProgress:
+      type: object
+      properties:
+        user_id: { type: string }
+        tier: { type: string, description: "초급|숙련|전문|전설 탐사자", example: "초급 탐사자" }
+        level: { type: integer, example: 3 }
+        exp: { type: integer }
+        visit_rate: { type: number, format: float, description: "관광지 방문률(%)" }
+        dex_count: { type: integer, description: "도감 등록 수" }
+        memory_stone_progress:
+          type: object
+          additionalProperties: { type: integer }
+          description: "지역별 기억석 복원도 (region_id -> 0~5)"
+
+    MapNode:
+      type: object
+      properties:
+        node_id: { type: string }
+        title: { type: string }
+        map_x: { type: number, format: float }
+        map_y: { type: number, format: float }
+        density_tier: { type: string, enum: [popular, low_traffic] }
+        status:
+          type: string
+          enum: [locked, available, in_progress, completed, season, party]
+        quest_id: { type: string, nullable: true }
+
+    NodeDetail:
+      allOf:
+        - $ref: "#/components/schemas/MapNode"
+        - type: object
+          properties:
+            addr: { type: string }
+            overview: { type: string, description: "관광지 설명(직접 주입 grounding 소스)" }
+            content_type_id: { type: integer, example: 12 }
+            trigger_radius_m: { type: integer, enum: [50, 100, 150] }
+            npc:
+              type: object
+              properties:
+                npc_id: { type: string }
+                name: { type: string }
+                archetype: { type: string, enum: [persona, guardian, trade, spirit] }
+            fragment_ids:
+              type: array
+              items: { type: string }
+            rare_relic_id: { type: string, nullable: true }
+
+    LocationVerifyRequest:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, format: float }
+        lng: { type: number, format: float }
+        accuracy_m: { type: number, format: float, description: "기기 위치 정확도" }
+
+    LocationVerifyResult:
+      type: object
+      properties:
+        verified: { type: boolean }
+        distance_m: { type: number, format: float }
+        state: { type: string, enum: [ARRIVED, GPS_VERIFIED] }
+        npc_spawned: { type: boolean }
+        reason: { type: string, nullable: true, description: "실패 사유(반경밖/스푸핑 의심 등)" }
+
+    DialogueRequest:
+      type: object
+      required: [node_id]
+      properties:
+        node_id: { type: string }
+        stage: { type: string, enum: [등장, 의뢰, 힌트, 완료], default: 등장 }
+        user_input: { type: string, nullable: true }
+
+    DialogueResponse:
+      type: object
+      properties:
+        response: { type: string }
+        cache_hit: { type: boolean }
+
+    CollectResult:
+      type: object
+      properties:
+        fragment_id: { type: string }
+        collected: { type: boolean }
+        already_collected: { type: boolean, description: "중복 획득(멀티 동시성)" }
+        progress: { type: integer, description: "현재 퀘스트 조각 수" }
+        required: { type: integer }
+
+    RewardResult:
+      type: object
+      properties:
+        state: { type: string, enum: [QUEST_COMPLETE, REWARDED] }
+        exp_gained: { type: integer }
+        memory_stone_fragment_id: { type: string }
+        rare_relic_id: { type: string, nullable: true }
+        dex_entry: { type: string, nullable: true }
+        titles: { type: array, items: { type: string } }
+        region_restored: { type: boolean, description: "지역 기억석 복원(챕터 완료)" }
+        next_node_id: { type: string, nullable: true }
+
+    Party:
+      type: object
+      properties:
+        party_id: { type: string }
+        code: { type: string, description: "초대 코드" }
+        region_id: { type: string }
+        members:
+          type: array
+          maxItems: 4
+          items:
+            type: object
+            properties:
+              user_id: { type: string }
+              nickname: { type: string }
+              collected_count: { type: integer }
+        mode: { type: string, enum: [coop, versus], default: coop }
+
+    CustomScenarioRequest:
+      type: object
+      properties:
+        wishlist:
+          type: array
+          items: { type: string }
+          description: "가고 싶은 곳(앵커). 비면 100% 시스템 큐레이션"
+        constraints:
+          type: object
+          properties:
+            time: { type: string, enum: [2h, half, full] }
+            transport: { type: string, enum: [walk, transit] }
+            companions: { type: string, enum: [solo, friends] }
+            difficulty: { type: string, enum: [light, normal] }
+
+    Scenario:
+      type: object
+      properties:
+        scenario_id: { type: string }
+        title: { type: string }
+        node_sequence:
+          type: array
+          items: { type: string }
+          description: "앵커+샛길 동선 순서(node_id)"
+        anchor_node_id: { type: string, description: "피날레(위시리스트)" }
+        is_public: { type: boolean, default: false }
