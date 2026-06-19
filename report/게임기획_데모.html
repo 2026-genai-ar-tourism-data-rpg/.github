@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<!-- ============================================================
+  [v1] 게임 기획 데모 — 도깨비: 팔도의 비밀 (RPG + 포켓몬고)
+  목적: 메인/사이드 퀘스트 경계·핵심 루프·RPG 시스템을 한 장으로 + 체험 데모
+  작성: kys / 2026-06-19
+============================================================ -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>도깨비: 팔도의 비밀 — 게임 기획</title>
+<style>
+  :root{
+    --bg:#080b16; --surface:#131a2b; --surface2:#1b2438; --border:#26314c;
+    --teal:#5eead4; --purple:#a78bfa; --gold:#e8b84b; --blue:#5b9bd5;
+    --t1:#f2f5fa; --t2:#8b93a7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--t1);font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;line-height:1.6;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px 80px;}
+  .eng{color:var(--teal);font-size:12px;letter-spacing:3px;font-weight:600}
+  h1{font-size:34px;margin:4px 0 10px}
+  h2{font-size:24px;margin:0 0 16px}
+  h3{font-size:17px;margin:0 0 8px}
+  .muted{color:var(--t2)}
+  section{padding:48px 0;border-bottom:1px solid var(--border)}
+  .hero{text-align:center;padding:70px 0 50px}
+  .hero .gem{width:110px;height:110px;margin:0 auto 28px;border-radius:24px;transform:rotate(45deg);
+    background:linear-gradient(135deg,var(--teal),var(--blue));box-shadow:0 0 60px rgba(94,234,212,.5)}
+  .pill{display:inline-block;padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-size:13px;color:var(--t2);margin:3px}
+  .pill.on{border-color:var(--teal);color:var(--teal);background:rgba(94,234,212,.12)}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:1fr 1fr 1fr}
+  @media(max-width:720px){.g2,.g3{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px}
+  .card.teal{border-color:rgba(94,234,212,.5);box-shadow:0 0 24px rgba(94,234,212,.1)}
+  .card.gold{border-color:rgba(232,184,75,.5);box-shadow:0 0 24px rgba(232,184,75,.1)}
+  .card.purple{border-color:rgba(167,139,250,.5)}
+  .tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;display:inline-block}
+  .tag.gold{background:rgba(232,184,75,.18);color:var(--gold)}
+  .tag.teal{background:rgba(94,234,212,.18);color:var(--teal)}
+  .tag.purple{background:rgba(167,139,250,.18);color:var(--purple)}
+  .tag.blue{background:rgba(91,155,213,.18);color:var(--blue)}
+  .loop{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:14px}
+  .loop span{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px}
+  .loop b{color:var(--teal)}
+  .vs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.vs{grid-template-columns:1fr}}
+  .step{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border)}
+  .step:last-child{border:none}
+  .num{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px}
+  .num.gold{background:rgba(232,184,75,.18);color:var(--gold);border:1px solid var(--gold)}
+  ul{padding-left:18px}li{margin:4px 0}
+  .bar{height:8px;border-radius:6px;background:var(--border);overflow:hidden;margin:8px 0}
+  .bar>i{display:block;height:100%}
+  /* demo */
+  .phone{max-width:360px;margin:0 auto;background:#0a0e16;border:1px solid var(--border);border-radius:28px;overflow:hidden;min-height:560px;position:relative}
+  .screen{padding:18px;min-height:560px;display:flex;flex-direction:column}
+  .choice{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);color:var(--t1);
+    padding:13px 14px;border-radius:12px;margin:8px 0;cursor:pointer;font-size:14px}
+  .choice:hover{border-color:var(--teal)}
+  .choice.go{border-color:var(--teal);color:var(--teal)}
+  .btn{background:var(--teal);color:#06231f;border:none;padding:14px;border-radius:14px;font-weight:700;font-size:15px;width:100%;cursor:pointer}
+  .npc{background:rgba(232,184,75,.07);border:1px solid rgba(232,184,75,.4);border-radius:14px;padding:14px;color:var(--t1)}
+  .marker{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;cursor:pointer;
+    background:rgba(94,234,212,.18);border:2px solid var(--teal);box-shadow:0 0 36px rgba(94,234,212,.55);font-size:34px;animation:pulse 1.4s infinite alternate}
+  @keyframes pulse{to{transform:scale(1.12)}}
+  .hidden{display:none}
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px}
+  .invchip{font-size:11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px 8px;display:inline-block;margin:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="gem"></div>
+    <div class="eng">DOKKAEBI — SECRET OF PALDO</div>
+    <h1>도깨비: 팔도의 비밀</h1>
+    <p class="muted" style="max-width:560px;margin:0 auto">
+      포켓몬 GO처럼 <b style="color:var(--teal)">밖에 나가</b> AR로 도깨비·기억석을 찾고,
+      메이플처럼 <b style="color:var(--gold)">퀘스트를 받아</b> 지역의 잃어버린 기억을 복원하는 위치기반 관광 RPG.
+    </p>
+    <div style="margin-top:18px">
+      <span class="pill on">실제 이동 = 진행</span>
+      <span class="pill on">AR 탐색·수집</span>
+      <span class="pill on">도깨비 NPC 분기 대화</span>
+      <span class="pill on">관광 분산</span>
+    </div>
+  </div>
+
+  <!-- 핵심 루프 -->
+  <section>
+    <div class="eng">CORE LOOP</div>
+    <h2>핵심 게임 루프</h2>
+    <div class="loop">
+      <span>📍 관광지 이동</span><b>→</b>
+      <span>🛰 GPS 도착 인증</span><b>→</b>
+      <span>🧙 도깨비 대화(분기)</span><b>→</b>
+      <span>📷 AR 탐색·수집</span><b>→</b>
+      <span>💎 기억석 조각</span><b>→</b>
+      <span>✨ 성장·보상</span><b>→</b>
+      <span>🗺 다음 장소</span>
+    </div>
+    <div class="grid g2" style="margin-top:22px">
+      <div class="card teal"><h3>🟦 포켓몬 GO에서</h3>
+        <ul class="muted"><li>카메라 대면 <b style="color:var(--teal)">도깨비·기억석</b>이 현실 위에 등장 → 찾아서 수집</li>
+        <li>실제 걸어다녀야 게임이 굴러감</li><li>도감 채우기(수집욕)</li></ul></div>
+      <div class="card gold"><h3>🟨 메이플에서</h3>
+        <ul class="muted"><li>도깨비가 <b style="color:var(--gold)">퀘스트를 의뢰</b> → 단서·스토리</li>
+        <li>탐사 등급·칭호·유물 성장</li><li>파티 협력(파퀘)</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 메인 vs 사이드 ⭐ -->
+  <section>
+    <div class="eng">QUEST DESIGN ⭐</div>
+    <h2>메인 퀘스트 vs 사이드 퀘스트</h2>
+    <p class="muted" style="margin-bottom:18px">기획의 핵심. 한 줄로: <b style="color:var(--gold)">메인="왜 가는가"(서사)</b> / <b style="color:var(--teal)">사이드="어디를 더"(탐험·분산)</b>.</p>
+    <div class="vs">
+      <div class="card gold">
+        <span class="tag gold">메인 퀘스트</span>
+        <h3 style="margin-top:10px">지역 기억 복원 서사</h3>
+        <ul>
+          <li><b>왜</b>: 저주로 흩어진 <b>지역 기억석</b>을 복원하는 스토리</li>
+          <li><b>어디</b>: 그 지역 <b>랜드마크</b>(경복궁·창덕궁·종묘…)</li>
+          <li><b>누구</b>: <b>수호 도깨비</b>가 이끔(지역 대표 NPC)</li>
+          <li><b>구조</b>: 정해진 노드 N곳(=조각 N개) → 마지막 수호 도깨비 대면 → <b>지역 복원=엔딩</b></li>
+          <li><b>성격</b>: 운영 큐레이션 · 1회성 스토리 · 선형/약분기</li>
+        </ul>
+        <p class="muted" style="font-size:13px;margin-top:8px">→ "이 지역의 이야기를 끝까지 본다"</p>
+      </div>
+      <div class="card teal">
+        <span class="tag teal">사이드 퀘스트</span>
+        <h3 style="margin-top:10px">탐험 · 분산 · 수집 (선택·반복)</h3>
+        <ul>
+          <li><b>장소 도깨비 의뢰</b> — 비인기 관광지의 단발 미션(분산 핵심, 희귀 보상)</li>
+          <li><b>도깨비 도감 헌팅</b> — 지역·시즌 한정 도깨비 수집</li>
+          <li><b>맞춤 코스(위시리스트)</b> — 내가 짠 앵커+샛길 → 공용 풀(UGC)</li>
+          <li><b>시즌/이벤트</b> — 벚꽃·단풍·야간개장 한정</li>
+          <li><b>사진 미션 · 연계 발견</b> — 풍경 촬영 / 메인 단서로 열리는 숨은 퀘스트</li>
+        </ul>
+        <p class="muted" style="font-size:13px;margin-top:8px">→ "메인 밖에서 더 돌아다닐 이유"(특히 비인기지)</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;border-style:dashed">
+      <h3>🔗 둘은 어떻게 맞물리나</h3>
+      <p class="muted">메인이 <b style="color:var(--gold)">뼈대(랜드마크·서사)</b>를 깔면, 사이드가 그 <b style="color:var(--teal)">사이사이 비인기지로 유도</b>(보상 가중치↑). 메인에서 얻은 단서가 사이드를 열고, 사이드의 도깨비·유물이 메인을 더 쉽게. = <b>관광 분산</b>이 게임 동기로 자연스럽게 박힘.</p>
+    </div>
+  </section>
+
+  <!-- 종로 메인 예시 -->
+  <section>
+    <div class="eng">EXAMPLE · SEOUL JONGNO</div>
+    <h2>메인 퀘스트 예시 — 「잠든 종로의 기억」</h2>
+    <div class="card gold">
+      <span class="tag gold">서울 종로 챕터</span> <span class="tag purple">수호: 청룡 도깨비</span>
+      <div class="bar" style="margin-top:12px"><i style="width:40%;background:var(--gold)"></i></div>
+      <p class="muted" style="font-size:13px">기억석 2/5 복원</p>
+      <div style="margin-top:14px">
+        <div class="step"><div class="num gold">1</div><div><b>운현궁</b> — 옛 기록 도깨비 <span class="tag teal">완료</span><br><span class="muted">흥선대원군 사저의 잊힌 시간 단서 획득</span></div></div>
+        <div class="step"><div class="num gold">2</div><div><b>보신각</b> — 종지기 도깨비 <span class="tag teal">완료</span><br><span class="muted">시간을 알리던 종소리 단서</span></div></div>
+        <div class="step"><div class="num gold">3</div><div><b>종묘</b> — 위패 수호 도깨비<br><span class="muted">왕들의 기억 조각</span></div></div>
+        <div class="step"><div class="num gold">4</div><div><b>창덕궁</b> — 후원 도깨비<br><span class="muted">비밀 정원의 조각</span></div></div>
+        <div class="step"><div class="num gold">5</div><div><b>🏁 경복궁</b> — <b>청룡 수호 도깨비 대면</b><br><span class="muted">5조각 합체 → 종로 기억석 복원 → <b>다음 지역(북촌·인사동) 해금</b></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 사이드 예시 카드 -->
+  <section>
+    <div class="eng">EXAMPLE · SIDE QUESTS</div>
+    <h2>사이드 퀘스트 예시</h2>
+    <div class="grid g3">
+      <div class="card teal"><span class="tag teal">장소 도깨비 · 분산</span><h3 style="margin-top:8px">서울공예박물관</h3><p class="muted">붓 잃은 글빛 도깨비를 도와 공방의 흔적을 AR로 모으기. <b style="color:var(--gold)">비인기지 희귀 보상↑</b></p></div>
+      <div class="card purple"><span class="tag purple">도감 헌팅</span><h3 style="margin-top:8px">익선동 골목 도깨비</h3><p class="muted">한옥 골목에만 출몰하는 시간대 한정 도깨비. 도감 등록·친밀도.</p></div>
+      <div class="card"><span class="tag blue">맞춤 코스(UGC)</span><h3 style="margin-top:8px">나만의 종로 코스</h3><p class="muted">가고싶은 곳(경복궁) 입력 → 앵커+샛길 자동 코스 → 공용 풀 공유.</p></div>
+      <div class="card"><span class="tag gold">시즌 한정</span><h3 style="margin-top:8px">창경궁 야간개장</h3><p class="muted">봄밤 한정 벚꽃 도깨비·한정 유물. 기간 지나면 사라짐.</p></div>
+      <div class="card"><span class="tag teal">사진 미션</span><h3 style="margin-top:8px">광화문 수문장</h3><p class="muted">수문장 교대식을 화면에 담아 인증 → 경험치·도감컷.</p></div>
+      <div class="card"><span class="tag purple">연계 발견</span><h3 style="margin-top:8px">숨은 기록</h3><p class="muted">메인에서 얻은 "시간 단서"로 열리는 운현궁 뒷마당 비밀 퀘스트.</p></div>
+    </div>
+  </section>
+
+  <!-- RPG 시스템 -->
+  <section>
+    <div class="eng">RPG SYSTEM</div>
+    <h2>성장 · 수집</h2>
+    <div class="grid g3">
+      <div class="card"><h3>📈 성장</h3><p class="muted">탐사 등급(레벨)·경험치·지역 칭호. 방문률·복원률로 오름.</p></div>
+      <div class="card"><h3>📖 도감</h3><p class="muted">도깨비 도감(수집욕)·관광지 스탬프·기억석 수집률.</p></div>
+      <div class="card"><h3>⚔️ 유물</h3><p class="muted">희귀 유물=능력(힌트 범위↑·조각 감지 등). 비인기지에서 드랍↑.</p></div>
+    </div>
+  </section>
+
+  <!-- 인터랙티브 데모 -->
+  <section>
+    <div class="eng">TRY IT</div>
+    <h2>체험 — 한 퀘스트 끝까지</h2>
+    <p class="muted" style="margin-bottom:18px">도착 → 도깨비 분기 대화 → AR 탐색 → 조각 획득. (메인이든 사이드든 같은 루프)</p>
+    <div class="phone"><div class="screen" id="screen"></div></div>
+  </section>
+
+  <p class="muted" style="text-align:center;padding-top:30px;font-size:13px">도깨비: 팔도의 비밀 — 게임 기획 데모 v1 · 2026-06-19</p>
+</div>
+
+<script>
+// ---- 인터랙티브 퀘스트 데모 (메인/사이드 공통 루프) ----
+const S = document.getElementById('screen');
+const inv = ['🎒 시간(申時) 단서'];   // 연계: 이전 노드에서 모은 것
+let turn = 0;
+
+const invBar = () => `<div style="margin-bottom:10px">${inv.map(i=>`<span class="invchip">${i}</span>`).join('')}</div>`;
+
+function arrival(){
+  S.innerHTML = `${invBar()}
+    <div class="center">
+      <div style="font-size:46px">📍</div>
+      <h3>경복궁</h3>
+      <p class="muted">반경 50m 안에서 도착 인증</p>
+      <button class="btn" onclick="dialog0()">도착 인증 →</button>
+    </div>`;
+}
+function dialog0(){
+  turn=0;
+  S.innerHTML = `${invBar()}
+    <div class="muted" style="font-weight:700;color:var(--gold);margin-bottom:6px">🧙 청룡 도깨비</div>
+    <div class="npc">허허, <b>申時</b>에 경복궁을 찾았구나. 근정전에서 왕들의 즉위식이 열렸으니… 헌데 이 땅의 기억 한 조각이 또 숨었구나. 자네, 그 시간 단서가 쓸모 있겠어.</div>
+    <div style="margin-top:14px">
+      <button class="choice" onclick="dialog1('근정전')">근정전의 즉위식 이야기를 더 듣는다</button>
+      <button class="choice" onclick="dialog1('단서')">'시간 단서'가 어디 쓰이는지 묻는다</button>
+      <button class="choice go" onclick="hint()">의뢰를 받고 기억석을 찾아 나선다 →</button>
+    </div>`;
+}
+function dialog1(which){
+  turn++;
+  const line = which==='근정전'
+    ? '근정전 월대의 해태상이 길을 지키느니라. 그 그늘진 곳을 눈여겨보거라.'
+    : '시간 단서를 자물쇠에 대면 봉인이 풀리지. 申時의 그림자가 가리키는 곳이니라.';
+  S.innerHTML = `${invBar()}
+    <div class="muted" style="font-weight:700;color:var(--gold);margin-bottom:6px">🧙 청룡 도깨비</div>
+    <div class="npc">${line}</div>
+    <div style="margin-top:14px">
+      <button class="choice" onclick="dialog1('단서')">한 번 더 캐묻는다</button>
+      <button class="choice go" onclick="hint()">의뢰를 받고 기억석을 찾아 나선다 →</button>
+    </div>
+    <p class="muted" style="font-size:12px;margin-top:10px">※ 대화는 ${turn+1}턴 — 깊이 상한(3~4턴)에서 자동으로 탐색으로 수렴</p>`;
+}
+function hint(){
+  S.innerHTML = `${invBar()}
+    <div class="center">
+      <div style="font-size:40px">🔦</div>
+      <h3 style="color:var(--gold)">AR 탐색</h3>
+      <div class="npc">힌트: "근정전 월대 아래, 해태상이 지켜보는 그늘을 살펴보거라."</div>
+      <button class="btn" onclick="scan()">📷 AR 카메라로 주변 스캔</button>
+    </div>`;
+}
+function scan(){
+  S.innerHTML = `${invBar()}
+    <div class="center">
+      <p class="muted">현실 위에 무언가 반짝인다…</p>
+      <div class="marker" onclick="collect()">💎</div>
+      <p style="color:var(--teal)">탭하여 기억석 조각 수집</p>
+    </div>`;
+}
+function collect(){
+  inv.push('💎 종로_stone_3of5');
+  S.innerHTML = `${invBar()}
+    <div class="center">
+      <div style="font-size:46px">✨</div>
+      <h3 style="color:var(--teal)">기억석 조각 획득!</h3>
+      <p class="muted">종로 기억석 3/5 · 경험치 +120 · 청룡 도깨비 친밀도↑</p>
+      <p class="muted" style="font-size:13px">이 조각·단서는 <b style="color:var(--teal)">다음 장소</b>에서 또 쓰인다 (연계).</p>
+      <button class="btn" onclick="arrival()">다음 장소로 ↺ (다시 체험)</button>
+    </div>`;
+}
+arrival();
+</script>
+</body>
+</html>
